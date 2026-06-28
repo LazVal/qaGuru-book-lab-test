@@ -1,6 +1,7 @@
 package tests;
 
 import models.login.*;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,6 +11,7 @@ import static tests.TestData.*;
 public class LoginTest extends BaseTest{
 
     @Test
+    @DisplayName("Успешная авторизация пользователя")
     public void successfulLoginTest(){
 
         LoginBodyModel loginData = new LoginBodyModel(USERNAME, PASSWORD);

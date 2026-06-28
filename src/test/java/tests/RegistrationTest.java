@@ -11,8 +11,10 @@ import models.registration.records.RegistrationResponseRecordsModel;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static io.qameta.allure.Allure.step;
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.JSON;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
@@ -22,7 +24,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static specs.registration.RegistrationSpec.*;
 
-public class RegistrationTest extends BaseTest{
+public class RegistrationTest extends BaseTest {
 
     String USERNAME;
     String PASSWORD;
@@ -36,7 +38,7 @@ public class RegistrationTest extends BaseTest{
 
     @Test
     @Disabled
-    public void successfulRegistrationTest_bad_practice(){
+    public void successfulRegistrationTest_bad_practice() {
         String data = "{\"USERNAME\": \"" + USERNAME + "\",\"password\": \"" + PASSWORD + "\"}";
 
         given()
@@ -55,7 +57,7 @@ public class RegistrationTest extends BaseTest{
 
     @Test
     @Disabled
-    public void successfulRegistrationTest_with_pojo(){
+    public void successfulRegistrationTest_with_pojo() {
         RegistrationBodyPojoModel data = new RegistrationBodyPojoModel();
         data.setUsername(USERNAME);
         data.setPassword(PASSWORD);
@@ -76,28 +78,31 @@ public class RegistrationTest extends BaseTest{
     }
 
     @Test
-    public void successfulRegistrationTest_with_lombok(){
+    @DisplayName("Успешная регистрация пользователя")
+    public void successfulRegistrationTest_with_lombok() {
         RegistrationBodyLombokModel data = new RegistrationBodyLombokModel();
         data.setUsername(USERNAME);
         data.setPassword(PASSWORD);
 
 //      RegistrationBodyLombokModel data = new RegistrationBodyLombokModel(USERNAME, password);
+        step("Отправка запроса Registration и проверка ответа (200) ", () -> {
+            RegistrationResponseLombokModel registrationResponse = given(registrationRequestSpec)
+                    .body(data)
+                    .when()
+                    .post("/users/register/")
+                    .then()
+                    .spec(successRegistrationResponseSpec)
+                    .extract()// переключаемся на извлечение
+                    .as(RegistrationResponseLombokModel.class);// десериализуем в модель
 
-        RegistrationResponseLombokModel registrationResponse = given(registrationRequestSpec)
-                .body(data)
-                .when()
-                .post("/users/register/")
-                .then()
-                .spec(successRegistrationResponseSpec)
-                .extract()// переключаемся на извлечение
-                .as(RegistrationResponseLombokModel.class);// десериализуем в модель
 
-        assertEquals(USERNAME, registrationResponse.getUsername());
+            assertEquals(USERNAME, registrationResponse.getUsername());
+        });
     }
 
     @Test
     @Disabled
-    public void successfulRegistrationTest_with_records(){
+    public void successfulRegistrationTest_with_records() {
         RegistrationBodyRecordsModel data = new RegistrationBodyRecordsModel(USERNAME, PASSWORD);
 
         RegistrationResponseRecordsModel registrationResponse = given(registrationRequestSpec)
@@ -125,65 +130,76 @@ public class RegistrationTest extends BaseTest{
     }
 
     @Test
-    public void existingUserTest(){
+    @DisplayName("Получение ошибки 'Пользователь уже существует'")
+    public void existingUserTest() {
         RegistrationBodyRecordsModel data = new RegistrationBodyRecordsModel(USERNAME, PASSWORD);
 
-        RegistrationResponseRecordsModel firstRegistrationResponse = given(registrationRequestSpec)
-                .body(data)
-                .when()
-                .post("/users/register/")
-                .then()
-                .spec(successRegistrationResponseSpec)
-                .extract()
-                .as(RegistrationResponseRecordsModel.class);
+        step("Отправка запроса Registration и проверка ответа (200) ", () -> {
+            RegistrationResponseRecordsModel firstRegistrationResponse = given(registrationRequestSpec)
+                    .body(data)
+                    .when()
+                    .post("/users/register/")
+                    .then()
+                    .spec(successRegistrationResponseSpec)
+                    .extract()
+                    .as(RegistrationResponseRecordsModel.class);
 
-        assertThat(firstRegistrationResponse.username()).isEqualTo(USERNAME);
+            assertThat(firstRegistrationResponse.username()).isEqualTo(USERNAME);
+        });
 
-        ExistingUserResponseRecordsModel secondRegistrationResponse = given(registrationRequestSpec)
-                .body(data)
-                .when()
-                .post("/users/register/")
-                .then()
-                .log().all()
-                .spec(existingUserRegistrationResponseSpec)
-                .extract()
-                .as(ExistingUserResponseRecordsModel.class);
+        step("Повторная отправка запроса Registration и проверка получения ошибки", () -> {
+            ExistingUserResponseRecordsModel secondRegistrationResponse = given(registrationRequestSpec)
+                    .body(data)
+                    .when()
+                    .post("/users/register/")
+                    .then()
+                    .log().all()
+                    .spec(existingUserRegistrationResponseSpec)
+                    .extract()
+                    .as(ExistingUserResponseRecordsModel.class);
 
-        String expectedError = "A user with that username already exists.";
-        assertThat(secondRegistrationResponse.username().get(0)).isEqualTo(expectedError);
+            String expectedError = "A user with that username already exists.";
+            assertThat(secondRegistrationResponse.username().get(0)).isEqualTo(expectedError);
+        });
     }
 
     @Test
-    public void invalidUsername400Test(){
+    @DisplayName("Получение ошибки 'Поле не может быть пустым'")
+    public void invalidUsername400Test() {
         RegistrationBodyLombokModel data = new RegistrationBodyLombokModel();
         data.setUsername("");
         data.setPassword(PASSWORD);
 
-        WrongRegistrationResponseLombokModel wrongRegistrationResponseLombokModel = given(registrationRequestSpec)
-                .body(data)
-                .when()
-                .post("/users/register/")
-                .then()
-                .spec(existingUserRegistrationResponseSpec)
-                .extract()
-                .as(WrongRegistrationResponseLombokModel.class);
+        step("Отправка запроса Registration с пустым Username", () -> {
+            WrongRegistrationResponseLombokModel wrongRegistrationResponseLombokModel = given(registrationRequestSpec)
+                    .body(data)
+                    .when()
+                    .post("/users/register/")
+                    .then()
+                    .spec(existingUserRegistrationResponseSpec)
+                    .extract()
+                    .as(WrongRegistrationResponseLombokModel.class);
 
 
-        String expectedError = "This field may not be blank.";
-        assertThat(wrongRegistrationResponseLombokModel.getUsername().get(0)).isEqualTo(expectedError);
+            String expectedError = "This field may not be blank.";
+            assertThat(wrongRegistrationResponseLombokModel.getUsername().get(0)).isEqualTo(expectedError);
+        });
     }
 
     @Test
-    public void negativeRegistration500Test(){
+    @DisplayName("Получение ошибки 404 not Found")
+    public void negativeRegistration404Test() {
         RegistrationBodyLombokModel data = new RegistrationBodyLombokModel();
         data.setUsername(USERNAME);
         data.setPassword(PASSWORD);
 
-        given(registrationRequestSpec)
-                .body(data)
-                .when()
-                .post("/users/registers")
-                .then()
-                .spec(negativeRegistrationResponseSpec);
+        step("Отправка запроса Registration на неверный endPoint", () -> {
+            given(registrationRequestSpec)
+                    .body(data)
+                    .when()
+                    .post("/users/registers")
+                    .then()
+                    .spec(negativeRegistrationResponseSpec);
+        });
     }
 }
