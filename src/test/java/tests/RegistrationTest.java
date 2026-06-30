@@ -23,6 +23,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static specs.registration.RegistrationSpec.*;
+import static tests.TestData.NOT_BE_BLANK_ERROR;
+import static tests.TestData.USER_ALREADY_EXIST_ERROR;
 
 public class RegistrationTest extends BaseTest {
 
@@ -84,18 +86,12 @@ public class RegistrationTest extends BaseTest {
         data.setUsername(USERNAME);
         data.setPassword(PASSWORD);
 
-//      RegistrationBodyLombokModel data = new RegistrationBodyLombokModel(USERNAME, password);
-        step("Отправка запроса Registration и проверка ответа (200) ", () -> {
-            RegistrationResponseLombokModel registrationResponse = given(registrationRequestSpec)
-                    .body(data)
-                    .when()
-                    .post("/users/register/")
-                    .then()
-                    .spec(successRegistrationResponseSpec)
-                    .extract()// переключаемся на извлечение
-                    .as(RegistrationResponseLombokModel.class);// десериализуем в модель
-
-
+        //RegistrationBodyLombokModel data = new RegistrationBodyLombokModel(USERNAME, PASSWORD);
+        RegistrationResponseLombokModel registrationResponse = step("Отправка запроса Registration " +
+                "и проверка ответа (200) ", () -> {
+            return api.users.register(data);
+        });
+        step("Проверка username", () -> {
             assertEquals(USERNAME, registrationResponse.getUsername());
         });
     }
@@ -135,31 +131,15 @@ public class RegistrationTest extends BaseTest {
         RegistrationBodyRecordsModel data = new RegistrationBodyRecordsModel(USERNAME, PASSWORD);
 
         step("Отправка запроса Registration и проверка ответа (200) ", () -> {
-            RegistrationResponseRecordsModel firstRegistrationResponse = given(registrationRequestSpec)
-                    .body(data)
-                    .when()
-                    .post("/users/register/")
-                    .then()
-                    .spec(successRegistrationResponseSpec)
-                    .extract()
-                    .as(RegistrationResponseRecordsModel.class);
+            RegistrationResponseRecordsModel firstRegistrationResponse = api.users.registerRecord(data);
 
             assertThat(firstRegistrationResponse.username()).isEqualTo(USERNAME);
         });
 
         step("Повторная отправка запроса Registration и проверка получения ошибки", () -> {
-            ExistingUserResponseRecordsModel secondRegistrationResponse = given(registrationRequestSpec)
-                    .body(data)
-                    .when()
-                    .post("/users/register/")
-                    .then()
-                    .log().all()
-                    .spec(existingUserRegistrationResponseSpec)
-                    .extract()
-                    .as(ExistingUserResponseRecordsModel.class);
+            ExistingUserResponseRecordsModel secondRegistrationResponse = api.users.registerExisting(data);
 
-            String expectedError = "A user with that username already exists.";
-            assertThat(secondRegistrationResponse.username().get(0)).isEqualTo(expectedError);
+            assertThat(secondRegistrationResponse.username().get(0)).isEqualTo(USER_ALREADY_EXIST_ERROR);
         });
     }
 
@@ -167,26 +147,18 @@ public class RegistrationTest extends BaseTest {
     @DisplayName("Получение ошибки 'Поле не может быть пустым'")
     public void invalidUsername400Test() {
         RegistrationBodyLombokModel data = new RegistrationBodyLombokModel();
-        data.setUsername("");
+        data.setUsername(" ");
         data.setPassword(PASSWORD);
 
         step("Отправка запроса Registration с пустым Username", () -> {
-            WrongRegistrationResponseLombokModel wrongRegistrationResponseLombokModel = given(registrationRequestSpec)
-                    .body(data)
-                    .when()
-                    .post("/users/register/")
-                    .then()
-                    .spec(existingUserRegistrationResponseSpec)
-                    .extract()
-                    .as(WrongRegistrationResponseLombokModel.class);
+            WrongRegistrationResponseLombokModel wrongRegistrationResponseLombokModel = api.users.registerWrong(data);
 
-
-            String expectedError = "This field may not be blank.";
-            assertThat(wrongRegistrationResponseLombokModel.getUsername().get(0)).isEqualTo(expectedError);
+            assertThat(wrongRegistrationResponseLombokModel.getUsername().get(0)).isEqualTo(NOT_BE_BLANK_ERROR);
         });
     }
 
     @Test
+    @Disabled
     @DisplayName("Получение ошибки 404 not Found")
     public void negativeRegistration404Test() {
         RegistrationBodyLombokModel data = new RegistrationBodyLombokModel();

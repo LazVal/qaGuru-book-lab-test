@@ -8,4 +8,6 @@ import lombok.Data;
 public class RegistrationBodyLombokModel {
     String username;
     String password;
+
+
 }

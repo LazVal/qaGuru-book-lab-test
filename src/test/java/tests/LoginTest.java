@@ -18,22 +18,14 @@ public class LoginTest extends BaseTest {
 
         LoginBodyModel loginData = new LoginBodyModel(USERNAME, PASSWORD);
 
-        step("Отправка запроса на авторизацию", () -> {
-            SuccessfulLoginBodyResponseModel successfulLoginBodyResponseModel = given(loginRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(successResponseSpec)
-                    .extract().as(SuccessfulLoginBodyResponseModel.class);
+        SuccessfulLoginBodyResponseModel successfulLoginBodyResponseModel = step("Отправка запроса на авторизацию", () -> {
+            return api.auth.login(loginData);
+        });
 
-            String expectedTokenPath = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
-            String actualAccess = successfulLoginBodyResponseModel.access();
-            String actualRefresh = successfulLoginBodyResponseModel.refresh();
-
-            assertThat(actualAccess).startsWith(expectedTokenPath);
-            assertThat(actualAccess).startsWith(expectedTokenPath);
-            assertThat(actualAccess).isNotEqualTo(actualRefresh);
+        step("Проверка токена", () -> {
+            assertThat(successfulLoginBodyResponseModel.access()).startsWith(EXPECTED_TOKEN);
+            assertThat(successfulLoginBodyResponseModel.access()).startsWith(EXPECTED_TOKEN);
+            assertThat(successfulLoginBodyResponseModel.access()).isNotEqualTo(successfulLoginBodyResponseModel.refresh());
         });
     }
 
@@ -43,19 +35,12 @@ public class LoginTest extends BaseTest {
 
         LoginBodyModel loginData = new LoginBodyModel(USERNAME, WRONG_PASSWORD);
 
-        step("Отправка запроса на авторизацию с неверным паролем", () -> {
-            WrongLoginBodyResponseModel loginResponse = given(loginRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(wrongLoginResponseSpec)
-                    .extract().as(WrongLoginBodyResponseModel.class);
+        WrongLoginBodyResponseModel loginResponse = step("Отправка запроса на авторизацию с неверным паролем", () -> {
+            return api.auth.loginWrong(loginData);
+        });
 
-            String expectedDetailError = "Invalid username or password.";
-            String actualDetailError = loginResponse.detail();
-
-            assertThat(actualDetailError).isEqualTo(expectedDetailError);
+        step("Проверка результата", () -> {
+            assertThat(loginResponse.detail()).isEqualTo(INVALID_USERNAME_ERROR);
         });
 
     }
@@ -67,21 +52,17 @@ public class LoginTest extends BaseTest {
 
         LoginBodyModel loginData = new LoginBodyModel(BLANK_USERNAME, BLANK_PASSWORD);
 
-        step("Отправка запроса на авторизацию с пустыми данными", () -> {
-            InvalidLoginBodyResponseModel invalidLoginResponse = given(loginRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(invalidLoginResponseSpec)
-                    .extract().as(InvalidLoginBodyResponseModel.class);
+        InvalidLoginBodyResponseModel invalidLoginResponse = step("Отправка запроса на авторизацию с пустыми данными", () ->
+                api.auth.loginInvalid(loginData)
 
-            String expectedError = "This field may not be blank.";
+        );
+        step("Проверка результата", () -> {
+            //куда это правильно убрать??
             String actualUsernameError = invalidLoginResponse.username().get(0);
             String actualPasswordError = invalidLoginResponse.password().get(0);
 
-            assertThat(actualUsernameError).isEqualTo(expectedError);
-            assertThat(actualPasswordError).isEqualTo(expectedError);
+            assertThat(actualUsernameError).isEqualTo(NOT_BE_BLANK_ERROR);
+            assertThat(actualPasswordError).isEqualTo(NOT_BE_BLANK_ERROR);
         });
 
     }
