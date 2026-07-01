@@ -158,7 +158,6 @@ public class RegistrationTest extends BaseTest {
     }
 
     @Test
-    @Disabled
     @DisplayName("Получение ошибки 404 not Found")
     public void negativeRegistration404Test() {
         RegistrationBodyLombokModel data = new RegistrationBodyLombokModel();
@@ -166,12 +165,7 @@ public class RegistrationTest extends BaseTest {
         data.setPassword(PASSWORD);
 
         step("Отправка запроса Registration на неверный endPoint", () -> {
-            given(registrationRequestSpec)
-                    .body(data)
-                    .when()
-                    .post("/users/registers")
-                    .then()
-                    .spec(negativeRegistrationResponseSpec);
+            api.users.registerNotAllowed(data);
         });
     }
 }

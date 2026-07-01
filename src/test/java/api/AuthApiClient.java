@@ -9,7 +9,7 @@ import static io.restassured.RestAssured.given;
 import static specs.login.LoginSpec.*;
 
 public class AuthApiClient {
-    public SuccessfulLoginBodyResponseModel login (LoginBodyModel body) {
+    public SuccessfulLoginBodyResponseModel login(LoginBodyModel body) {
         return given(loginRequestSpec)
                 .body(body)
                 .when()
@@ -19,7 +19,7 @@ public class AuthApiClient {
                 .extract().as(SuccessfulLoginBodyResponseModel.class);
     }
 
-    public WrongLoginBodyResponseModel loginWrong (LoginBodyModel body) {
+    public WrongLoginBodyResponseModel loginWrong(LoginBodyModel body) {
         return given(loginRequestSpec)
                 .body(body)
                 .when()
@@ -29,7 +29,7 @@ public class AuthApiClient {
                 .extract().as(WrongLoginBodyResponseModel.class);
     }
 
-    public InvalidLoginBodyResponseModel loginInvalid (LoginBodyModel body) {
+    public InvalidLoginBodyResponseModel loginInvalid(LoginBodyModel body) {
         return given(loginRequestSpec)
                 .body(body)
                 .when()
@@ -37,5 +37,14 @@ public class AuthApiClient {
                 .then()
                 .spec(invalidLoginResponseSpec)
                 .extract().as(InvalidLoginBodyResponseModel.class);
+    }
+
+    public void loginNotAllowed(LoginBodyModel body) {
+        given()
+                .body(body)
+                .when()
+                .post("/auth/token/")
+                .then()
+                .spec(notAllowedLoginResponseSpec);
     }
 }

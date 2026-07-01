@@ -5,9 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static io.qameta.allure.Allure.step;
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static specs.login.LoginSpec.*;
 import static tests.TestData.*;
 
 public class LoginTest extends BaseTest {
@@ -18,9 +16,9 @@ public class LoginTest extends BaseTest {
 
         LoginBodyModel loginData = new LoginBodyModel(USERNAME, PASSWORD);
 
-        SuccessfulLoginBodyResponseModel successfulLoginBodyResponseModel = step("Отправка запроса на авторизацию", () -> {
-            return api.auth.login(loginData);
-        });
+        SuccessfulLoginBodyResponseModel successfulLoginBodyResponseModel = step("Отправка запроса на авторизацию", () ->
+                api.auth.login(loginData)
+        );
 
         step("Проверка токена", () -> {
             assertThat(successfulLoginBodyResponseModel.access()).startsWith(EXPECTED_TOKEN);
@@ -35,9 +33,9 @@ public class LoginTest extends BaseTest {
 
         LoginBodyModel loginData = new LoginBodyModel(USERNAME, WRONG_PASSWORD);
 
-        WrongLoginBodyResponseModel loginResponse = step("Отправка запроса на авторизацию с неверным паролем", () -> {
-            return api.auth.loginWrong(loginData);
-        });
+        WrongLoginBodyResponseModel loginResponse = step("Отправка запроса на авторизацию с неверным паролем", () ->
+                api.auth.loginWrong(loginData)
+        );
 
         step("Проверка результата", () -> {
             assertThat(loginResponse.detail()).isEqualTo(INVALID_USERNAME_ERROR);
@@ -56,10 +54,11 @@ public class LoginTest extends BaseTest {
                 api.auth.loginInvalid(loginData)
 
         );
+
+        String actualUsernameError = invalidLoginResponse.username().get(0);
+        String actualPasswordError = invalidLoginResponse.password().get(0);
+
         step("Проверка результата", () -> {
-            //куда это правильно убрать??
-            String actualUsernameError = invalidLoginResponse.username().get(0);
-            String actualPasswordError = invalidLoginResponse.password().get(0);
 
             assertThat(actualUsernameError).isEqualTo(NOT_BE_BLANK_ERROR);
             assertThat(actualPasswordError).isEqualTo(NOT_BE_BLANK_ERROR);
@@ -72,14 +71,9 @@ public class LoginTest extends BaseTest {
     public void NotAllowedLoginTest() {
 
         LoginBodyModel loginData = new LoginBodyModel(BLANK_USERNAME, BLANK_PASSWORD);
-        step("Отправка запроса, ошибка 405", () -> {
-            given()
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(notAllowedLoginResponseSpec);
-        });
+        step("Отправка запроса, ошибка 405", () ->
+            api.auth.loginNotAllowed(loginData)
+        );
 
     }
 }

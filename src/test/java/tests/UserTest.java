@@ -1,8 +1,8 @@
 package tests;
 
-import models.User.GetUserResponseBodyModel;
-import models.User.UnauthorizedGetUserResponseBodyModel;
-import models.User.UpdateUserRequestBodyModel;
+import models.user.GetUserResponseBodyModel;
+import models.user.UnauthorizedGetUserResponseBodyModel;
+import models.user.UpdateUserRequestBodyModel;
 import models.login.LoginBodyModel;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.BeforeAll;
@@ -13,11 +13,6 @@ import org.junit.jupiter.api.Test;
 import static io.qameta.allure.Allure.step;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static specs.BaseSpec.baseRequestSpec;
-import static specs.User.GetUserSpec.successGetUserResponseSpec;
-import static specs.User.GetUserSpec.unauthorizedGetUserResponseSpec;
-import static specs.login.LoginSpec.loginRequestSpec;
-import static specs.login.LoginSpec.successResponseSpec;
 import static tests.TestData.*;
 
 public class UserTest extends BaseTest {
@@ -31,13 +26,7 @@ public class UserTest extends BaseTest {
     public static void loginPrepareTest() {
         LoginBodyModel loginData = new LoginBodyModel(USERNAME, PASSWORD);
         step("Успешная авторизация пользователя", () -> {
-            accessToken = given(loginRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(successResponseSpec)
-                    .extract().path("access");
+            accessToken = api.users.registerAccess(loginData);
         });
     }
 
@@ -52,16 +41,12 @@ public class UserTest extends BaseTest {
     @Test
     @DisplayName("Получение ионформации о пользователе")
     public void successGetUserTest() {
-        step("Отправка запроса на получение информации о пользователе ", () -> {
-            GetUserResponseBodyModel getUserResponseBodyModel = given(baseRequestSpec)
-                    .when()
-                    .auth().oauth2(accessToken)
-                    .get("/users/me/")
-                    .then()
-                    .spec(successGetUserResponseSpec)
-                    .extract()
-                    .as(GetUserResponseBodyModel.class);
 
+        GetUserResponseBodyModel getUserResponseBodyModel = step("Отправка запроса на получение информации о пользователе ", () ->
+                api.users.getUser(accessToken)
+        );
+
+        step("Проверка результата ", () -> {
             assertThat(getUserResponseBodyModel.username()).isEqualTo(USERNAME);
         });
     }
@@ -71,17 +56,11 @@ public class UserTest extends BaseTest {
     public void successUpdateUserTest() {
         UpdateUserRequestBodyModel updateUserRequestBodyModel = new UpdateUserRequestBodyModel(FIRSTNAME, LASTNAME, EMAIL);
 
-        step("Отправка запроса на обновление данных пользователя", () -> {
-            GetUserResponseBodyModel getUserResponseBodyModel = given(baseRequestSpec)
-                    .body(updateUserRequestBodyModel)
-                    .when()
-                    .auth().oauth2(accessToken)
-                    .patch("/users/me/")
-                    .then()
-                    .spec(successGetUserResponseSpec)
-                    .extract()
-                    .as(GetUserResponseBodyModel.class);
+        GetUserResponseBodyModel getUserResponseBodyModel = step("Отправка запроса на обновление данных пользователя", () ->
+                api.users.updateUser(updateUserRequestBodyModel, accessToken)
+        );
 
+        step("Проверка результата", () -> {
             assertThat(getUserResponseBodyModel.username()).isEqualTo(USERNAME);
             assertThat(getUserResponseBodyModel.firstName()).isEqualTo(FIRSTNAME);
             assertThat(getUserResponseBodyModel.lastName()).isEqualTo(LASTNAME);
@@ -94,19 +73,12 @@ public class UserTest extends BaseTest {
     @Test
     @DisplayName("Получение ошибки Authorization")
     public void unauthorizedGetUserTest() {
-        step("Отправка запроса без хэдера Authorization", () -> {
-            UnauthorizedGetUserResponseBodyModel unauthorizedGetUserResponseBodyModel
-                    = given(baseRequestSpec)
-                    .when()
-                    .auth().oauth2("")
-                    .get("/users/me/")
-                    .then()
-                    .spec(unauthorizedGetUserResponseSpec)
-                    .extract()
-                    .as(UnauthorizedGetUserResponseBodyModel.class);
 
-            String expectedError = "Authorization header must contain two space-delimited values";
-            assertThat(unauthorizedGetUserResponseBodyModel.detail()).isEqualTo(expectedError);
+        UnauthorizedGetUserResponseBodyModel unauthorizedGetUserResponseBodyModel
+                = step("Отправка запроса без хэдера Authorization", () -> api.users.anauthUser()
+        );
+        step("Отправка запроса без хэдера Authorization", () -> {
+            assertThat(unauthorizedGetUserResponseBodyModel.detail()).isEqualTo(AUTHORIZATION_ERROR);
         });
     }
 
